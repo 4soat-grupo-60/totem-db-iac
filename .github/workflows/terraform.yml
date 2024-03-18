@@ -29,19 +29,19 @@ jobs:
       - name: Terraform Init
         id: init
         run: |
-          cd totem-db-iac
+          cd ./
           terraform init
 
       - name: Terraform Plan
         id: plan
         run: |
-          cd totem-db-iac
+          cd ./
           terraform plan
 
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main'
         run: |
-          cd totem-db-iac
+          cd ./
           terraform apply -auto-approve
 
       - name: Post Terraform Plan
