@@ -1,16 +1,10 @@
-locals {
-  totem_db = jsondecode(
-    data.aws_secretsmanager_secret_version.database.secret_string
-  )
-}
-
 resource "aws_db_instance" "database" {
   db_name                      = var.projectName
   engine                       = var.dbType
   engine_version               = var.dbTypeVersion
   identifier                   = "rds-${var.projectName}"
-  username                     = local.totem_db.db_user
-  password                     = local.totem_db.db_pass
+  username                     = local.initial.username
+  password                     = local.initial.password
   instance_class               = var.instance
   storage_type                 = var.storage
   allocated_storage            = var.minStorage
