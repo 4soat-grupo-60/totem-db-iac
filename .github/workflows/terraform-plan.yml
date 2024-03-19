@@ -1,0 +1,77 @@
+name: "Terraform Plan"
+
+on:
+  pull_request:
+
+env:
+  TF_CLOUD_ORGANIZATION: "Grupo-G60-4SOAT-FIAP"
+  TF_API_TOKEN: "${{ secrets.TF_API_TOKEN }}"
+  TF_WORKSPACE: "totem-db-iac"
+  CONFIG_DIRECTORY: "./"
+
+jobs:
+  terraform-plan:
+    name: "Terraform Plan"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Terraform Cloud - Upload Config for Plan
+        uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.0.0
+        id: upload-config
+        with:
+          workspace: ${{ env.TF_WORKSPACE }}
+          directory: ${{ env.CONFIG_DIRECTORY }}
+          speculative: true
+
+      - name: Terraform Cloud - Create Plan Run
+        uses: hashicorp/tfc-workflows-github/actions/create-run@v1.0.0
+        id: create-plan
+        with:
+          workspace: ${{ env.TF_WORKSPACE }}
+          configuration_version: ${{ steps.upload-config.outputs.configuration_version_id }}
+          plan_only: true
+
+      - name: Terraform Cloud - Get Plan Output
+        uses: hashicorp/tfc-workflows-github/actions/plan-output@v1.0.0
+        id: get-plan-output
+        with:
+          plan: ${{ fromJSON(steps.create-plan.outputs.payload).data.relationships.plan.data.id }}
+
+      - name: Update Pull Request with Terraform Plan
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const botComment = comments.data.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Terraform Cloud Plan Output')
+            );
+            const planDetails = `#### Terraform Cloud Plan Output
+               \`\`\`
+               Plan: ${steps.get-plan-output.outputs.add} to add, ${steps.get-plan-output.outputs.change} to change, ${steps.get-plan-output.outputs.destroy} to destroy.
+               \`\`\`
+               [View Detailed Terraform Cloud Plan](${steps.create-plan.outputs.run_link})`;
+
+            if (botComment) {
+              await github.rest.issues.deleteComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+              });
+            }
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: planDetails
+            });

@@ -1,0 +1,45 @@
+name: "Terraform Apply"
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  TF_CLOUD_ORGANIZATION: "Grupo-G60-4SOAT-FIAP"
+  TF_API_TOKEN: "${{ secrets.TF_API_TOKEN }}"
+  TF_WORKSPACE: "totem-db-iac"
+  CONFIG_DIRECTORY: "./"
+
+jobs:
+  terraform:
+    name: "Terraform Apply"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Terraform Cloud - Upload Config & Apply
+        id: terraform-apply
+        uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.0.0
+        with:
+          workspace: ${{ env.TF_WORKSPACE }}
+          directory: ${{ env.CONFIG_DIRECTORY }}
+        env:
+          TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
+
+      - name: Create Terraform Apply Run
+        if: steps.terraform-apply.outputs.configuration_version_id
+        uses: hashicorp/tfc-workflows-github/actions/create-run@v1.0.0
+        with:
+          workspace: ${{ env.TF_WORKSPACE }}
+          configuration_version: ${{ steps.terraform-apply.outputs.configuration_version_id }}
+
+      - name: Execute Terraform Apply
+        if: fromJSON(steps.terraform-apply.outputs.payload).data.attributes.actions.is_confirmable
+        uses: hashicorp/tfc-workflows-github/actions/apply-run@v1.0.0
+        with:
+          run: ${{ steps.terraform-apply.outputs.run_id }}
+          comment: "Terraform apply triggered by GitHub Actions for commit ${{ github.sha }}"
