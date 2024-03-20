@@ -1,5 +1,4 @@
 provider "aws" {
-  profile = "default"
   region = var.region
 
   default_tags {
@@ -51,7 +50,7 @@ terraform {
     organization = "4SOAT-G60"
 
     workspaces {
-      name = "totem-iac"
+      name = "totem-db-iac"
     }
   }
 }
