@@ -51,7 +51,7 @@ terraform {
     organization = "4SOAT-G60"
 
     workspaces {
-      name = "totem-iac"
+      name = "totem-db-iac"
     }
   }
 }
