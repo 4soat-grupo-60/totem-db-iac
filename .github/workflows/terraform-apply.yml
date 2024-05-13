@@ -4,10 +4,11 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 env:
-  TF_CLOUD_ORGANIZATION: "Grupo-G60-4SOAT-FIAP"
-  TF_API_TOKEN: "${{ secrets.TF_API_TOKEN }}"
+  TF_CLOUD_ORGANIZATION: "4SOAT-G60"
+  TF_API_TOKEN: "${{ secrets.TF_API_TOKEN }}" # Para obter um Token siga as instruções em https://developer.hashicorp.com/terraform/tutorials/automation/github-actions#set-up-terraform-cloud
   TF_WORKSPACE: "totem-db-iac"
   CONFIG_DIRECTORY: "./"
 
@@ -18,28 +19,27 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Terraform Cloud - Upload Config & Apply
-        id: terraform-apply
+      - name: Upload Configuration
         uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.0.0
+        id: apply-upload
         with:
           workspace: ${{ env.TF_WORKSPACE }}
           directory: ${{ env.CONFIG_DIRECTORY }}
-        env:
-          TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
 
-      - name: Create Terraform Apply Run
-        if: steps.terraform-apply.outputs.configuration_version_id
+      - name: Create Apply Run
         uses: hashicorp/tfc-workflows-github/actions/create-run@v1.0.0
+        id: apply-run
         with:
           workspace: ${{ env.TF_WORKSPACE }}
-          configuration_version: ${{ steps.terraform-apply.outputs.configuration_version_id }}
+          configuration_version: ${{ steps.apply-upload.outputs.configuration_version_id }}
 
-      - name: Execute Terraform Apply
-        if: fromJSON(steps.terraform-apply.outputs.payload).data.attributes.actions.is_confirmable
+      - name: Apply
         uses: hashicorp/tfc-workflows-github/actions/apply-run@v1.0.0
+        if: fromJSON(steps.apply-run.outputs.payload).data.attributes.actions.IsConfirmable
+        id: apply
         with:
-          run: ${{ steps.terraform-apply.outputs.run_id }}
-          comment: "Terraform apply triggered by GitHub Actions for commit ${{ github.sha }}"
+          run: ${{ steps.apply-run.outputs.run_id }}
+          comment: "Apply Run from GitHub Actions CI ${{ github.sha }}"
