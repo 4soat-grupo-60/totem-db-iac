@@ -4,6 +4,12 @@ terraform {
     key    = "postgres/terraform.tfstate"
     region = "us-east-1"
   }
+  required_providers {
+    mongodbatlas = {
+      source = "mongodb/mongodbatlas"
+    }
+  }
+  required_version = ">= 0.13"
 }
 provider "aws" {
   profile = "default"
@@ -12,6 +18,11 @@ provider "aws" {
   default_tags {
     tags = var.tags
   }
+}
+
+provider "mongodbatlas" {
+  public_key  = var.mongodb_atlas_api_pub_key
+  private_key = var.mongodb_atlas_api_pri_key
 }
 
 resource "aws_secretsmanager_secret" "db" {
@@ -52,4 +63,3 @@ resource "aws_iam_policy" "policy_secret_db" {
     ]
   })
 }
-
