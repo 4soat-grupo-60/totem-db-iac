@@ -6,6 +6,11 @@ provider "aws" {
   }
 }
 
+provider "mongodbatlas" {
+  public_key  = var.mongodb_atlas_api_pub_key
+  private_key = var.mongodb_atlas_api_pri_key
+}
+
 resource "aws_secretsmanager_secret" "totem_db" {
   name        = "prod/totem/Postgresql"
   description = "Armazena as credenciais do banco de dados PostgreSQL"
@@ -53,4 +58,11 @@ terraform {
       name = "totem-db-iac"
     }
   }
+
+  required_providers {
+    mongodbatlas = {
+      source = "mongodb/mongodbatlas"
+    }
+  }
+  required_version = ">= 0.13"
 }
